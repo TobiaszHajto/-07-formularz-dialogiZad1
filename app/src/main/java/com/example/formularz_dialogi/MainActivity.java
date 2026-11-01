@@ -1,27 +1,33 @@
 
 package com.example.formularz_dialogi;
 
+import android.app.DatePickerDialog;
 import android.os.Bundle;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
+import android.util.Patterns;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioGroup;
 import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
+import android.widget.ArrayAdapter;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import java.util.Calendar;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
     private EditText etName, etEmail;
-    private Button btnSubmit;
+    private Button btnBirthDate, btnSubmit;
     private Spinner spCourse;
     private RadioGroup rgMode;
     private SeekBar sbLevel;
     private TextView tvLevelValue, tvSummary;
+
+    private String birthDate = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,6 +36,7 @@ public class MainActivity extends AppCompatActivity {
 
         etName = findViewById(R.id.etName);
         etEmail = findViewById(R.id.etEmail);
+        btnBirthDate = findViewById(R.id.btnBirthDate);
         btnSubmit = findViewById(R.id.btnSubmit);
         spCourse = findViewById(R.id.spCourse);
         rgMode = findViewById(R.id.rgMode);
@@ -56,20 +63,12 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        btnBirthDate.setOnClickListener(v -> showDatePicker());
+
         btnSubmit.setOnClickListener(v -> {
-            String name = etName.getText().toString();
-            String email = etEmail.getText().toString();
-
-            String mode = rgMode.getCheckedRadioButtonId() == R.id.rbOnsite
-                    ? "Stacjonarny" : "Zdalny";
-
-            String summary = "Imię: " + name
-                    + "\nEmail: " + email
-                    + "\nKurs: " + spCourse.getSelectedItem().toString()
-                    + "\nTryb: " + mode
-                    + "\nPoziom: " + sbLevel.getProgress();
-
-            tvSummary.setText(summary);
+            if (validateForm()) {
+                tvSummary.setText(buildSummary());
+            }
         });
     }
 
@@ -79,5 +78,70 @@ public class MainActivity extends AppCompatActivity {
 
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spCourse.setAdapter(adapter);
+    }
+
+    private void showDatePicker() {
+        Calendar calendar = Calendar.getInstance();
+
+        DatePickerDialog dialog = new DatePickerDialog(
+                this,
+                (view, year, month, dayOfMonth) -> {
+                    birthDate = String.format(Locale.US, "%04d-%02d-%02d",
+                            year, month + 1, dayOfMonth);
+                    btnBirthDate.setText(birthDate);
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH));
+
+        dialog.getDatePicker().setMaxDate(System.currentTimeMillis());
+        dialog.show();
+    }
+
+    private boolean validateForm() {
+        String name = etName.getText().toString().trim();
+
+        if (name.isEmpty()) {
+            etName.setError("Podaj imię");
+            etName.requestFocus();
+            return false;
+        }
+
+        String email = etEmail.getText().toString().trim();
+
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            etEmail.setError("Podaj poprawny adres e-mail");
+            etEmail.requestFocus();
+            return false;
+        }
+
+        if (birthDate.isEmpty()) {
+            Toast.makeText(this, "Wybierz datę urodzenia", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        if (spCourse.getSelectedItemPosition() == 0) {
+            Toast.makeText(this, "Wybierz kurs", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        if (rgMode.getCheckedRadioButtonId() == -1) {
+            Toast.makeText(this, "Wybierz tryb nauki", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        return true;
+    }
+
+    private String buildSummary() {
+        String mode = rgMode.getCheckedRadioButtonId() == R.id.rbOnsite
+                ? "Stacjonarny" : "Zdalny";
+
+        return "Imię: " + etName.getText().toString().trim()
+                + "\nEmail: " + etEmail.getText().toString().trim()
+                + "\nData urodzenia: " + birthDate
+                + "\nKurs: " + spCourse.getSelectedItem().toString()
+                + "\nTryb: " + mode
+                + "\nPoziom: " + sbLevel.getProgress();
     }
 }
