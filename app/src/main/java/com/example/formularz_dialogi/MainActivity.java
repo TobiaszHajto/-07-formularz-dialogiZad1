@@ -5,6 +5,7 @@ import android.app.DatePickerDialog;
 import android.os.Bundle;
 import android.util.Patterns;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.RadioGroup;
 import android.widget.SeekBar;
@@ -13,7 +14,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ArrayAdapter;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.google.android.material.materialswitch.MaterialSwitch;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.util.Calendar;
 import java.util.Locale;
@@ -26,6 +31,8 @@ public class MainActivity extends AppCompatActivity {
     private RadioGroup rgMode;
     private SeekBar sbLevel;
     private TextView tvLevelValue, tvSummary;
+    private MaterialSwitch swNewsletter;
+    private CheckBox cbTerms;
 
     private String birthDate = "";
 
@@ -43,10 +50,21 @@ public class MainActivity extends AppCompatActivity {
         sbLevel = findViewById(R.id.sbLevel);
         tvLevelValue = findViewById(R.id.tvLevelValue);
         tvSummary = findViewById(R.id.tvSummary);
+        swNewsletter = findViewById(R.id.swNewsletter);
+        cbTerms = findViewById(R.id.cbTerms);
 
         setUpCourseSpinner();
 
-        tvLevelValue.setText(String.valueOf(sbLevel.getProgress()));
+        cbTerms.setOnCheckedChangeListener((buttonView, isChecked) ->
+                btnSubmit.setEnabled(isChecked));
+
+        btnBirthDate.setOnClickListener(v -> showDatePicker());
+
+        btnSubmit.setOnClickListener(v -> {
+            if (validateForm()) {
+                askForConfirmation();
+            }
+        });
 
         sbLevel.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -63,13 +81,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        btnBirthDate.setOnClickListener(v -> showDatePicker());
-
-        btnSubmit.setOnClickListener(v -> {
-            if (validateForm()) {
-                tvSummary.setText(buildSummary());
-            }
-        });
+        tvLevelValue.setText(String.valueOf(sbLevel.getProgress()));
     }
 
     private void setUpCourseSpinner() {
@@ -133,15 +145,36 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
+    private void askForConfirmation() {
+        new AlertDialog.Builder(this)
+                .setTitle("Potwierdzenie")
+                .setMessage("Czy na pewno chcesz wysłać formularz?")
+                .setPositiveButton("Tak", (dialog, which) -> submitForm())
+                .setNegativeButton("Nie", null)
+                .show();
+    }
+
+    private void submitForm() {
+        tvSummary.setText(buildSummary());
+
+        Snackbar.make(findViewById(R.id.main), "Formularz został wysłany",
+                        Snackbar.LENGTH_LONG)
+                .setAction("Cofnij", v -> tvSummary.setText(""))
+                .show();
+    }
+
     private String buildSummary() {
         String mode = rgMode.getCheckedRadioButtonId() == R.id.rbOnsite
                 ? "Stacjonarny" : "Zdalny";
+
+        String newsletter = swNewsletter.isChecked() ? "Tak" : "Nie";
 
         return "Imię: " + etName.getText().toString().trim()
                 + "\nEmail: " + etEmail.getText().toString().trim()
                 + "\nData urodzenia: " + birthDate
                 + "\nKurs: " + spCourse.getSelectedItem().toString()
                 + "\nTryb: " + mode
-                + "\nPoziom: " + sbLevel.getProgress();
+                + "\nPoziom: " + sbLevel.getProgress()
+                + "\nNewsletter: " + newsletter;
     }
 }
